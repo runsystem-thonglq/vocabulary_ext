@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Text Translator</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        width: 400px;
+        padding: 10px;
+      }
+      .loading {
+        display: none;
+      }
+      .saved-word-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #dee2e6;
+      }
+      .word-details {
+        flex-grow: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" id="mainPage">
+      <div class="mb-3">
+        <h5>Allowed Pages</h5>
+        <div class="list-group" id="allowedPages">
+          <!-- Pages will be dynamically loaded here -->
+        </div>
+        <div class="d-grid gap-2 mt-3">
+          <button class="btn btn-primary" id="addPageBtn">
+            Add Current Page
+          </button>
+          <button class="btn btn-danger" id="clearAllBtn">
+            Remove All Pages
+          </button>
+        </div>
+      </div>
+      <hr />
+      <div class="form-check form-switch mb-3">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          role="switch"
+          id="extensionToggle"
+        />
+        <label class="form-check-label" for="extensionToggle"
+          >Enable Extension</label
+        >
+      </div>
+      <hr />
+      <div class="saved-words-section">
+        <h5>Saved Words</h5>
+        <div class="d-grid gap-2">
+          <button class="btn btn-success mb-2" id="saveWordsBtn">
+            View Saved Words
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- New save words page -->
+    <div class="container" id="saveWordsPage" style="display: none">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5>Save Words</h5>
+        <button class="btn btn-secondary" id="backToMainBtn">Back</button>
+      </div>
+      <div id="savedWordsPage">
+        <!-- Save words form will be here -->
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
