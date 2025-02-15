@@ -84,3 +84,60 @@
 .open-chatgpt-btn:hover {
   background: #15a76c;
 }
+
+.suggestion-popup {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+
+.suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.suggestion-item:hover {
+  background-color: #f5f5f5;
+}
+
+.suggestion-item span {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.suggestion-item p {
+  font-size: 16px
+}
+
+.suggestion-item span.orange {
+  color: #000
+}
+
+.suggestion-item span.hl {
+  color: #6792bd
+  ;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.fl {
+  float: left;
+  display: block;
+  font-size: 20px;
+  width: 100%;
+}
+
+/* .fr {
+  
+} */
+.clear, .clearfix:after, .clr {
+  clear: both;
+}

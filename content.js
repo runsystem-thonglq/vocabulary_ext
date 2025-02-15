@@ -1,26 +1,33 @@
+// The crawlLaban function will be available globally
+
 let popup = null;
 
 document.addEventListener("mouseup", async (e) => {
   e.preventDefault();
   e.stopPropagation();
 
-  // Check if extension is enabled
-  const { isEnabled = true } = await chrome?.storage?.sync.get("isEnabled");
-  if (!isEnabled) return;
+  try {
+    // Check if extension is enabled
+    const { isEnabled = true } = await chrome?.storage?.sync?.get("isEnabled") || { isEnabled: true };
+    if (!isEnabled) return;
 
-  // Check if current page is allowed
-  const { allowedPages = [] } = await chrome?.storage?.sync.get("allowedPages");
-  const currentUrl = window.location.href;
+    // Check if current page is allowed
+    const { allowedPages = [] } = await chrome?.storage?.sync.get("allowedPages") || { allowedPages: [] };
+    const currentUrl = window.location.href;
 
-  // Check if any allowed page pattern matches the current URL
-  const isAllowed = allowedPages.some(
-    (pattern) =>
-      currentUrl.includes(pattern) ||
-      new RegExp(pattern.replace(/\*/g, ".*")).test(currentUrl)
-  );
+    // Check if any allowed page pattern matches the current URL
+    const isAllowed = allowedPages.some(
+      (pattern) =>
+        currentUrl.includes(pattern) ||
+        new RegExp(pattern.replace(/\*/g, ".*")).test(currentUrl)
+    );
 
-  if (!isAllowed) {
-    return;
+    if (!isAllowed) {
+      return;
+    }
+  } catch (error) {
+    console.warn('Failed to check extension state:', error);
+    return; // Exit gracefully if we can't verify extension state
   }
 
   // check if click popup
@@ -30,6 +37,7 @@ document.addEventListener("mouseup", async (e) => {
   const selectedText = window.getSelection().toString().trim();
 
   if (popup) {
+    window.getSelection().removeAllRanges();
     document.body.removeChild(popup);
     popup = null;
   }
@@ -76,8 +84,6 @@ document.addEventListener("mouseup", async (e) => {
     const selection = window.getSelection();
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    console.log(rect, 1);
-    console.log(popup.offsetHeight);
     popup.style.left = `${rect.left}px`;
     popup.style.top = `${rect.top + 30 + popup.offsetHeight}px`;
     // popup.style.left = `${rect.left + window.scrollX}px`;
@@ -87,6 +93,8 @@ document.addEventListener("mouseup", async (e) => {
     closeBtn.className = "close-btn";
     closeBtn.innerHTML = "×";
     closeBtn.onclick = () => {
+      // remove selected text
+      window.getSelection().removeAllRanges();
       document.body.removeChild(popup);
       popup = null;
     };
@@ -117,132 +125,6 @@ document.addEventListener("mouseup", async (e) => {
     document.body.appendChild(popup);
 
     try {
-      // Use MyMemory Translation API instead of Lingva
-      const [translatedText, pronunciation] = await Promise.all([
-        fetch(
-          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
-            selectedText
-          )}&langpair=en|vi`
-        ),
-        getPronunciation(selectedText),
-      ]);
-      const data = await translatedText.json();
-
-      if (data.responseData?.translatedText) {
-        const translatedText = data.responseData.translatedText;
-        loadingDiv.style.display = "none";
-
-        resultDiv.innerHTML = `
-          <div class="translation">
-            <div class="meaning">${translatedText}</div>
-             <button style="color:rgb(235, 51, 76); cursor: pointer;" class="audio-btn" type="button">
-                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                </svg>
-              </button>
-            <div class="pronunciation-container">
-              <div class="pronunciation">${pronunciation}</div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-              <button style="background-color: #007bff; color: #fff; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; width: 100px; display: flex; align-items: center; justify-content: center; gap: 5px;" class="copy-btn btn btn-primary" type="button">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                Copy
-              </button>
-              <button style="background-color: #28a745; color: #fff; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; width: 100px; display: flex; align-items: center; justify-content: center; gap: 5px;" class="save-btn btn btn-success" type="button">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                Save
-              </button>
-            </div>
-          </div>
-        `;
-
-        // Add audio playback functionality
-        const audioBtn = resultDiv.querySelector(".audio-btn");
-        audioBtn.addEventListener("click", () => {
-          try {
-            const utterance = new SpeechSynthesisUtterance(selectedText);
-            utterance.lang = "en-US";
-            speechSynthesis.speak(utterance);
-          } catch (err) {
-            console.error("Failed to play audio:", err);
-          }
-        });
-
-        // Thêm sự kiện click cho nút copy
-        const copyBtn = resultDiv.querySelector(".copy-btn");
-        console.log(copyBtn, 343);
-        copyBtn.addEventListener("click", async () => {
-          console.log("copyBtn clicked");
-          try {
-            const textToCopy = `${translatedText}\n${pronunciation}`;
-            await navigator.clipboard.writeText(textToCopy);
-            copyBtn.textContent = "Copied!";
-            copyBtn.classList.add("copied");
-
-            // Reset nút sau 2 giây
-            setTimeout(() => {
-              copyBtn.innerHTML = `
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                                Copy
-                            `;
-              copyBtn.classList.remove("copied");
-            }, 2000);
-          } catch (err) {
-            copyBtn.textContent = "Copy failed";
-            copyBtn.classList.add("error");
-          }
-        });
-
-        // Add save functionality
-        const saveBtn = resultDiv.querySelector(".save-btn");
-        saveBtn.addEventListener("click", async () => {
-          try {
-            const wordToSave = {
-              original: selectedText,
-              translation: translatedText,
-              pronunciation: pronunciation,
-              timestamp: new Date().toISOString(),
-            };
-
-            const { savedWords = [] } = await chrome.storage.sync.get(
-              "savedWords"
-            );
-            savedWords.push(wordToSave);
-            await chrome.storage.sync.set({ savedWords });
-
-            saveBtn.textContent = "Saved!";
-            saveBtn.style.backgroundColor = "#218838";
-
-            setTimeout(() => {
-              saveBtn.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                Save
-              `;
-              saveBtn.style.backgroundColor = "#28a745";
-            }, 2000);
-          } catch (err) {
-            saveBtn.textContent = "Error!";
-            saveBtn.style.backgroundColor = "#dc3545";
-          }
-        });
-      } else {
-        throw new Error("Translation failed");
-      }
     } catch (error) {
       loadingDiv.textContent = "Có lỗi xảy ra khi dịch";
     }
@@ -251,6 +133,7 @@ document.addEventListener("mouseup", async (e) => {
 
 document.addEventListener("mousedown", (e) => {
   if (popup && !popup.contains(e.target)) {
+    window.getSelection().removeAllRanges();
     document.body.removeChild(popup);
     popup = null;
   }
@@ -279,4 +162,202 @@ async function getPronunciation(text) {
   // Wait for all promises to resolve
   const pronunciations = await Promise.all(pronunciationPromises);
   return pronunciations.join(" ");
+}
+
+// Tạo MutationObserver để theo dõi thay đổi DOM
+const observer = new MutationObserver(async (mutations) => {
+  // if not allowed page, return
+  const { allowedPages = [] } = await chrome?.storage?.sync.get("allowedPages");
+  const currentUrl = window.location.href;
+  const isAllowed = allowedPages.some(
+    (pattern) =>
+      currentUrl.includes(pattern) ||
+      new RegExp(pattern.replace(/\*/g, ".*")).test(currentUrl)
+  );
+  if (!isAllowed) {
+    return;
+  }
+
+  mutations.forEach(() => {
+    const editableElements = document.querySelectorAll(
+      '[contenteditable="true"]'
+    );
+    console.log(editableElements.length, "INPUT");
+    editableElements.forEach((element) => {
+      // Kiểm tra xem element đã có event listener chưa
+      if (!element.hasAttribute("data-has-listener")) {
+        element.setAttribute("data-has-listener", "true");
+
+        element.addEventListener(
+          "input",
+          debounce(async (e) => {
+            const inputText = e.target.textContent.trim();
+            if (!inputText) return;
+
+            try {
+              const response = await fetch(
+                `https://dict.laban.vn/ajax/autocomplete?type=1&site=dictionary&query=${encodeURIComponent(
+                  inputText
+                )}`
+              );
+              const data = await response.json();
+              const suggestions = data.suggestions || [];
+              console.log("SUGGESTIONS", suggestions);
+              showSuggestionPopup(suggestions, e.target);
+            } catch (error) {
+              console.error("Error fetching suggestions:", error);
+            }
+          }, 300)
+        );
+      }
+    });
+  });
+});
+
+// Cấu hình observer
+const config = {
+  childList: true,
+  subtree: true,
+};
+
+// Bắt đầu theo dõi
+observer.observe(document.body, config);
+
+function showSuggestionPopup(suggestions, targetElement) {
+  if (popup) {
+    document.body.removeChild(popup);
+    popup = null;
+  }
+
+  popup = document.createElement("div");
+  popup.className = "suggestion-popup";
+  popup.style.position = "fixed";
+  popup.style.display = "flex";
+  popup.style.flexDirection = "column";
+  popup.style.gap = "4px";
+
+  const rect = targetElement.getBoundingClientRect();
+  popup.style.left = `${rect.left}px`;
+  popup.style.top = `${rect.top + 30 + popup.offsetHeight}px`;
+  console.log(rect, popup.offsetHeight, "RECT");
+  
+  suggestions.forEach((suggestion) => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item";
+    
+    // Tạo một div tạm thời để parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = suggestion.data;
+    
+    // Lấy thẻ a và rel của nó
+    const linkElement = tempDiv.querySelector('a');
+    const relValue = linkElement?.getAttribute('rel') || '';
+    
+    // Tạo content div mới và copy nội dung từ thẻ a
+    const content = document.createElement("div");
+    content.innerHTML = linkElement.innerHTML;
+    item.appendChild(content);
+    
+    // Lưu rel value vào data attribute của item
+    item.dataset.rel = relValue;
+
+    item.addEventListener("click", async () => {
+      targetElement.textContent = suggestion.select;
+      
+      try { 
+        const translate = await crawlLaban(item.dataset.rel);
+        console.log(translate, "TRANSLATE");
+        if (!!translate.datas.length) {
+          handleAutoTranslate(translate, targetElement);
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      }
+      document.body.removeChild(popup);
+      popup = null;
+    });
+
+    popup.appendChild(item);
+  });
+
+  document.body.appendChild(popup);
+}
+
+// Debounce helper function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+function handleAutoTranslate(data, targetElement) {
+  const { pronunciation, datas } = data;
+  const flashcardCard = targetElement.closest('[id*="flashcardCard-"]');
+  if (flashcardCard) {
+    const nextElement = flashcardCard.querySelectorAll('[contenteditable="true"]')?.[1];
+    if (nextElement) {
+      // Create the list structure
+      const pronunciationP = document.createElement('p');
+      pronunciationP.innerHTML = `<strong><span class="selection" style="color:rgb(128, 20, 230);font-weight: bold;"> 🔊${pronunciation}</span></strong>`;
+      const ul = document.createElement('ul');
+      datas.forEach(data => {
+        const li = document.createElement('li');
+        
+        // Type (Danh từ)
+        const typeP = document.createElement('p');
+        const typeSpan = document.createElement('span');
+        typeSpan.style.color = '#509451';
+        typeSpan.innerHTML = `<strong>${data.type}</strong>`;
+        typeP.appendChild(typeSpan);
+        li.appendChild(typeP);
+        
+        // Description
+        const descP = document.createElement('p');
+        if (data.description) {
+          descP.innerHTML = `<strong><span class="selection"> 📒${data.description}</span></strong>`;
+        }
+        li.appendChild(descP);
+        
+        // Meanings
+        data.meanings.forEach(meaningObj => {
+          // Meaning
+          const meaningP = document.createElement('p');
+          meaningP.innerHTML = `<strong><em><span class="selection" style="color: #3472ad">✅ ${meaningObj.meaning}</span></em></strong>`;
+          li.appendChild(meaningP);
+          
+          // Examples
+          meaningObj.examples.forEach(example => {
+            // English example
+            const enP = document.createElement('p');
+            enP.innerHTML = `<span style="color:rgb(158, 59, 142)" class="selection">👮‍♀️ ${example.en}</span>`;
+            li.appendChild(enP);
+            
+            // Vietnamese example
+            const viP = document.createElement('p');
+            viP.innerHTML = `<span class="selection" style="font-style: italic;">🦹‍♀️ ${example.vi}</span>`;
+            li.appendChild(viP);
+          });
+        });
+        
+        // Add line breaks at the end
+        li.appendChild(document.createElement('br'));
+        li.appendChild(document.createElement('br'));
+        
+        ul.appendChild(li);
+      });
+      
+      // Clear existing content and append the new structure
+      nextElement.innerHTML = '';
+      if (pronunciation) {
+        nextElement.appendChild(pronunciationP);
+      }
+      nextElement.appendChild(ul);
+    }
+  }
 }

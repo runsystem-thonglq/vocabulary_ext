@@ -28,6 +28,8 @@
                 "styles.css"
             ],
             "js": [
+                "lib/axios.js",
+                "crawl.js",
                 "content.js"
             ]
         }
