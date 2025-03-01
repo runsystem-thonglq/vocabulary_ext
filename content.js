@@ -8,11 +8,15 @@ document.addEventListener("mouseup", async (e) => {
 
   try {
     // Check if extension is enabled
-    const { isEnabled = true } = await chrome?.storage?.sync?.get("isEnabled") || { isEnabled: true };
+    const { isEnabled = true } = (await chrome?.storage?.sync?.get(
+      "isEnabled"
+    )) || { isEnabled: true };
     if (!isEnabled) return;
 
     // Check if current page is allowed
-    const { allowedPages = [] } = await chrome?.storage?.sync.get("allowedPages") || { allowedPages: [] };
+    const { allowedPages = [] } = (await chrome?.storage?.sync.get(
+      "allowedPages"
+    )) || { allowedPages: [] };
     const currentUrl = window.location.href;
 
     // Check if any allowed page pattern matches the current URL
@@ -26,7 +30,7 @@ document.addEventListener("mouseup", async (e) => {
       return;
     }
   } catch (error) {
-    console.warn('Failed to check extension state:', error);
+    console.warn("Failed to check extension state:", error);
     return; // Exit gracefully if we can't verify extension state
   }
 
@@ -240,31 +244,31 @@ function showSuggestionPopup(suggestions, targetElement) {
   popup.style.left = `${rect.left}px`;
   popup.style.top = `${rect.top + 30 + popup.offsetHeight}px`;
   console.log(rect, popup.offsetHeight, "RECT");
-  
+
   suggestions.forEach((suggestion) => {
     const item = document.createElement("div");
     item.className = "suggestion-item";
-    
+
     // Tạo một div tạm thời để parse HTML
-    const tempDiv = document.createElement('div');
+    const tempDiv = document.createElement("div");
     tempDiv.innerHTML = suggestion.data;
-    
+
     // Lấy thẻ a và rel của nó
-    const linkElement = tempDiv.querySelector('a');
-    const relValue = linkElement?.getAttribute('rel') || '';
-    
+    const linkElement = tempDiv.querySelector("a");
+    const relValue = linkElement?.getAttribute("rel") || "";
+
     // Tạo content div mới và copy nội dung từ thẻ a
     const content = document.createElement("div");
     content.innerHTML = linkElement.innerHTML;
     item.appendChild(content);
-    
+
     // Lưu rel value vào data attribute của item
     item.dataset.rel = relValue;
 
     item.addEventListener("click", async () => {
       targetElement.textContent = suggestion.select;
-      
-      try { 
+
+      try {
         const translate = await crawlLaban(item.dataset.rel);
         console.log(translate, "TRANSLATE");
         if (!!translate.datas.length) {
@@ -298,62 +302,64 @@ function debounce(func, wait) {
 
 function handleAutoTranslate(data, targetElement) {
   const { pronunciation, datas } = data;
-  const flashcardCard = targetElement.closest('[id*="flashcardCard-"]');
+  const flashcardCard = targetElement.closest('[id*="flashcardCard-"], .TermContent');
   if (flashcardCard) {
-    const nextElement = flashcardCard.querySelectorAll('[contenteditable="true"]')?.[1];
+    const nextElement = flashcardCard.querySelectorAll(
+      '[contenteditable="true"]'
+    )?.[1];
     if (nextElement) {
       // Create the list structure
-      const pronunciationP = document.createElement('p');
+      const pronunciationP = document.createElement("p");
       pronunciationP.innerHTML = `<strong><span class="selection" style="color:rgb(128, 20, 230);font-weight: bold;"> 🔊${pronunciation}</span></strong>`;
-      const ul = document.createElement('ul');
-      datas.forEach(data => {
-        const li = document.createElement('li');
-        
+      const ul = document.createElement("ul");
+      datas.forEach((data) => {
+        const li = document.createElement("li");
+
         // Type (Danh từ)
-        const typeP = document.createElement('p');
-        const typeSpan = document.createElement('span');
-        typeSpan.style.color = '#509451';
+        const typeP = document.createElement("p");
+        const typeSpan = document.createElement("span");
+        typeSpan.style.color = "#509451";
         typeSpan.innerHTML = `<strong>${data.type}</strong>`;
         typeP.appendChild(typeSpan);
         li.appendChild(typeP);
-        
+
         // Description
-        const descP = document.createElement('p');
+        const descP = document.createElement("p");
         if (data.description) {
           descP.innerHTML = `<strong><span class="selection"> 📒${data.description}</span></strong>`;
         }
         li.appendChild(descP);
-        
+
         // Meanings
-        data.meanings.forEach(meaningObj => {
+        data.meanings.forEach((meaningObj) => {
           // Meaning
-          const meaningP = document.createElement('p');
+          const meaningP = document.createElement("p");
           meaningP.innerHTML = `<strong><em><span class="selection" style="color: #3472ad">✅ ${meaningObj.meaning}</span></em></strong>`;
           li.appendChild(meaningP);
-          
+
           // Examples
-          meaningObj.examples.forEach(example => {
+          meaningObj.examples.forEach((example) => {
             // English example
-            const enP = document.createElement('p');
+            const enP = document.createElement("p");
             enP.innerHTML = `<span style="color:rgb(158, 59, 142)" class="selection">👮‍♀️ ${example.en}</span>`;
             li.appendChild(enP);
-            
+
             // Vietnamese example
-            const viP = document.createElement('p');
+            const viP = document.createElement("p");
             viP.innerHTML = `<span class="selection" style="font-style: italic;">🦹‍♀️ ${example.vi}</span>`;
             li.appendChild(viP);
           });
         });
-        
+
         // Add line breaks at the end
-        li.appendChild(document.createElement('br'));
-        li.appendChild(document.createElement('br'));
-        
+        li.appendChild(document.createElement("br"));
+        li.appendChild(document.createElement("br"));
+
         ul.appendChild(li);
       });
-      
+
       // Clear existing content and append the new structure
-      nextElement.innerHTML = '';
+      nextElement.innerHTML = "";
       if (pronunciation) {
         nextElement.appendChild(pronunciationP);
       }
