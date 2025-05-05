@@ -50,7 +50,6 @@ window.crawlLaban = async function crawlLaban(query) {
         const contentDivs = Array.from(sections?.querySelectorAll('.slide_content:not(.hidden) div') || []);
 
         contentDivs.forEach(element => {
-            console.log(element,4);
             // Kiểm tra nếu là tiêu đề loại từ
             if (element.classList.contains('bg-grey') && element.classList.contains('bold')) {
                 currentType = {
@@ -132,7 +131,6 @@ window.crawlLaban = async function crawlLaban(query) {
                         setTimeout(() => window.close(), 1000);
                     }
                 `;
-                console.log(message,5,corsWindow);
                 corsWindow.eval(message)
             }
           } catch (error) {

@@ -171,7 +171,8 @@ async function getPronunciation(text) {
 // Tạo MutationObserver để theo dõi thay đổi DOM
 const observer = new MutationObserver(async (mutations) => {
   // if not allowed page, return
-  const { allowedPages = [] } = await chrome?.storage?.sync.get("allowedPages");
+  const { allowedPages = [] } =
+    (await chrome?.storage?.sync?.get("allowedPages")) || [];
   const currentUrl = window.location.href;
   const isAllowed = allowedPages.some(
     (pattern) =>
@@ -302,11 +303,15 @@ function debounce(func, wait) {
 
 function handleAutoTranslate(data, targetElement) {
   const { pronunciation, datas } = data;
-  const flashcardCard = targetElement.closest('[id*="flashcardCard-"], .TermContent');
+  const flashcardCard = targetElement.closest(
+    '[id*="flashcardCard-"], .TermContent'
+  );
+  console.log(flashcardCard, "FLASHCARD CARD", datas);
   if (flashcardCard) {
     const nextElement = flashcardCard.querySelectorAll(
-      '[contenteditable="true"]'
+     '[contenteditable="true"][role="textbox"]'
     )?.[1];
+    console.log(nextElement, "NEXT ELEMENT");
     if (nextElement) {
       // Create the list structure
       const pronunciationP = document.createElement("p");
