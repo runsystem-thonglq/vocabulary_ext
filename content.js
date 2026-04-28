@@ -187,33 +187,39 @@ const observer = new MutationObserver(async (mutations) => {
     const editableElements = document.querySelectorAll(
       '[contenteditable="true"]'
     );
-    console.log(editableElements.length, "INPUT");
     editableElements.forEach((element) => {
       // Kiểm tra xem element đã có event listener chưa
       if (!element.hasAttribute("data-has-listener")) {
         element.setAttribute("data-has-listener", "true");
 
-        element.addEventListener(
-          "input",
-          debounce(async (e) => {
-            const inputText = e.target.textContent.trim();
-            if (!inputText) return;
+        const handleInput = debounce(async (e) => {
+          console.log("handleInput", e);
+          let inputText = "";
+          if (e.type === "paste") {
+            inputText = element.textContent
+          } else {
+            inputText = e.target.textContent.trim();
+          }
+          if (!inputText) return;
 
-            try {
-              const response = await fetch(
-                `https://dict.laban.vn/ajax/autocomplete?type=1&site=dictionary&query=${encodeURIComponent(
-                  inputText
-                )}`
-              );
-              const data = await response.json();
-              const suggestions = data.suggestions || [];
-              console.log("SUGGESTIONS", suggestions);
-              showSuggestionPopup(suggestions, e.target);
-            } catch (error) {
-              console.error("Error fetching suggestions:", error);
-            }
-          }, 300)
-        );
+          try {
+            const response = await fetch(
+              `https://dict.laban.vn/ajax/autocomplete?type=1&site=dictionary&query=${encodeURIComponent(
+                inputText
+              )}`
+            );
+            const data = await response.json();
+            const suggestions = data.suggestions || [];
+            console.log("SUGGESTIONS", suggestions);
+           
+            showSuggestionPopup(suggestions, element);
+          } catch (error) {
+            console.error("Error fetching suggestions:", error);
+          }
+        }, 300);
+
+        element.addEventListener("input", handleInput);
+        element.addEventListener("paste", handleInput);
       }
     });
   });
@@ -244,7 +250,6 @@ function showSuggestionPopup(suggestions, targetElement) {
   const rect = targetElement.getBoundingClientRect();
   popup.style.left = `${rect.left}px`;
   popup.style.top = `${rect.top + 30 + popup.offsetHeight}px`;
-  console.log(rect, popup.offsetHeight, "RECT");
 
   suggestions.forEach((suggestion) => {
     const item = document.createElement("div");
@@ -271,7 +276,6 @@ function showSuggestionPopup(suggestions, targetElement) {
 
       try {
         const translate = await crawlLaban(item.dataset.rel);
-        console.log(translate, "TRANSLATE");
         if (!!translate.datas.length) {
           handleAutoTranslate(translate, targetElement);
         }
@@ -311,7 +315,6 @@ function handleAutoTranslate(data, targetElement) {
     const nextElement = flashcardCard.querySelectorAll(
      '[contenteditable="true"][role="textbox"]'
     )?.[1];
-    console.log(nextElement, "NEXT ELEMENT");
     if (nextElement) {
       // Create the list structure
       const pronunciationP = document.createElement("p");
